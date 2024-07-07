@@ -5,12 +5,6 @@ from random_tree import random_el
 from chunk_xml.chunk import ChunkMgr
 from chunk_xml.chunk import Chunk
 
-def test_example():
-    assert 1 + 1 == 2
-
-def test_string_length():
-    assert len("pytest") == 6
-
     
 class TestChunkMgr():
     @staticmethod
