@@ -6,12 +6,9 @@ from token_count import TokenCount
 def show(el):            
     return etree.tostring(el, encoding="utf-8").decode("utf-8")
 
-
-
 class XmlDoc():
     def __init__(self, xml_src):
         pass
-
 
 class ChunkMgr():
     ''' Decompose XML into smaller chunks that can be reassembled '''
@@ -23,11 +20,9 @@ class ChunkMgr():
         self.chunk = Chunk(self.tree, token_limit, model_name)
         # self.chunks = self.chunk.decompose()
 
-
 def hash_el(el):
     s = etree.tostring(el, encoding="utf-8").decode("utf-8")
     return hashlib.md5(s.encode()).hexdigest()[:16]
-
 
 class Chunk():
     '''
@@ -154,19 +149,23 @@ class Chunk():
         # todo, consider getting rid of the split elements
         # also, may need to track the root element.
         '''
-        This is straight forward but a little clever, so watch
-        out.  return a list of chunks that can be reassembled into the
+        Return a list of chunks that can be reassembled into the
         original tree.  currently limitation, does not handle text or
         tail that exceed token_limit
         '''
         if self.too_big(el):
-            # if doc is too big, split it up!
+            cs = el.getchildren()
+            if len(cs) == 0:                
+                # todo: handle case of no children and large text section 
+                raise Exception("Library limitation encountered, can't split large text, tail.")
             
-            if len(el.getchildren()) > 1:
+            if len(cs) > 1:
+                # if there is more than one child element 
                 s, l, r = self.split_many(el)
                 return self.decompose(s) + self.decompose(l) + self.decompose(r)
             
             else:
+                # if there is only one child element
                 split, rest = self.split_one(el)
                 return self.decompose(split) + self.decompose(rest)
         else:
