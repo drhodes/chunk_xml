@@ -9,6 +9,9 @@ from chunk_xml.chunk import Chunk
 def show(el):            
     return etree.tostring(el, encoding="utf-8").decode("utf-8")
 
+def pp(el):            
+    return etree.tostring(el, pretty_print=True, encoding="utf-8").decode("utf-8")
+
 
 class TestChunkMgr():
     def hash_cmp(self, xml_string):
@@ -76,3 +79,81 @@ def test_decompose_file():
     el = etree.fromstring(xml_src)
     cm = ChunkMgr(500, "gpt-4o")
     xs = cm.decompose(el)
+
+
+def test_decompose_recursion_error():
+    xml = '''
+    <e>
+      <d1> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d1>
+      <d2> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d2>
+      <d3> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d3>
+      <d4> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d4>
+    </e>
+    '''
+    with pytest.raises(RecursionError) as e:
+        el = etree.fromstring(xml)
+        cm = ChunkMgr(100, "gpt-4o")
+        
+        # resize the token_limit to cause problems!
+        cm.token_limit = 10
+        cm.decompose(el)
+
+
+def test_contains_chunk_ref():
+    xml = '''
+    <e>
+      <d1> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d1>
+      <d2> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d2>
+      <d3> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d3>
+      <d4> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d4>
+    </e>
+    '''
+    el1 = etree.fromstring(xml)
+    cm = ChunkMgr(100, "gpt-4o")
+    chunks = cm.decompose(el1)
+    root = chunks[0]
+    root.contains_chunk_ref()
+
+def test_recompose():
+    xml = '''
+    <e>
+      <d1> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d1>
+      <d2> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d2>
+      <d3> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d3>
+      <d4> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d4>
+    </e>
+    '''
+    el1 = etree.fromstring(xml)
+    cm = ChunkMgr(100, "gpt-4o")
+    chunks = cm.decompose(el1)
+    el2 = cm.recompose(chunks)
+
+    s1 = show(etree.fromstring(xml))
+    s2 = show(el2)
+    assert s1 == s2
+
+    
+def test_recompose_rand():
+    max_depth = 8
+    for i in range(100):
+        xml = etree.tostring(random_el(i%max_depth))
+        el1 = etree.fromstring(xml)
+        cm = ChunkMgr(100, "gpt-4o")
+        chunks = cm.decompose(el1)
+        el2 = cm.recompose(chunks)
+        
+        s1 = show(etree.fromstring(xml))
+        s2 = show(el2)
+        assert s1 == s2
+
+    
+def test_recompose_file():
+    xml = open("tests/cases/m49435-index.cnxml").read()
+    el = etree.fromstring(xml)
+    cm = ChunkMgr(500, "gpt-4o")
+    chunks = cm.decompose(el)
+    el2 = cm.recompose(chunks)
+        
+    s1 = pp(etree.fromstring(xml))
+    s2 = pp(el2)
+    assert s1 == s2
