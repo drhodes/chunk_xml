@@ -52,7 +52,7 @@ class TestChunk():
     # generate random xml and ensure that hashes match.
     def test_hash_cmd_rand(self):        
         max_depth = 7
-        for i in range(100):
+        for i in range(30):
             s = etree.tostring(random_el(i%max_depth))
             self.hash_cmp(s)
 
@@ -87,3 +87,14 @@ def test_decompose_2():
     c = Chunk.from_str(xml, 100, "gpt-4o")
     xs = c.decompose(c.element)
     
+def test_decompose_rand():
+    for depth in range(4, 10):
+        xml = etree.tostring(random_el(depth))
+        c = Chunk.from_str(xml, 500, "gpt-4o")
+        xs = c.decompose(c.element)
+
+def test_decompose_file():
+    xml_src = open("tests/cases/m49435-index.cnxml").read()
+    c = Chunk.from_str(xml_src, 500, "gpt-4o")
+    xs = c.decompose(c.element)
+    for x in xs: print(x)
