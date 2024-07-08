@@ -56,6 +56,29 @@ class Chunk():
         return ref
     
     def split_many(self, el):
+        '''
+        suppose el has more than one child element
+        <a>
+          <b> ... </b>
+          <c> ... </c>
+          <d> ... </d>
+          <e> ... </e>
+        </a>                  
+        
+        bust it into a sequence of 3 decomposed elements. 
+        · <split>
+            <a>
+              <chunk-ref id="123"/>
+              <chunk-ref id="456"/>
+            <a/>
+          </split>        
+        · <chunk id="123"> <b> ... </b> <c> ... </c> </chunk>
+        · <chunk id="456"> <d> ... </d> <e> ... </e> </chunk>
+        
+        The first element of a folded chunk is the parent.
+        not all the elements will fit into the folded chunk.
+        so:
+        '''
         cs = el.getchildren()
         n = len(cs)//2
         els_left, els_right = cs[:n], cs[n:]
@@ -78,16 +101,31 @@ class Chunk():
         inner.append(self.build_ref(left_id))
         inner.append(self.build_ref(right_id))
         split.append(inner)
-        
         return [split, left, right]
     
     def split_one(self, el):
+        '''
+        situation, suppose el is heavily nested with only
+        one child element and looks something like:
+        
+                <a>
+                    <b> 
+                        <c>
+                            <d> ... </d>
+                        </c>
+                    </b>
+                </a>
+        
+        the previous tactic is ineffective since el has only
+        one child element. No problem, just dig down another
+        element and continue on.
+        
+        · <split> <a> <b> <chunk-ref id="123"/> </b> </a> </split>
+        
+        · <chunk id="123"> <c> <d> ... </d> </c> </chunk>
+
+        '''
         assert len(el.getchildren()) == 1
-        # what if el only has one child element?
-        # <a> <b> <rest.../> </b> </a>
-        # becomes
-        # <split-one> <a> <b> <chunk-ref/> </b> </a> </split-one>
-        # <chunk> <rest...> </chunk>
         
         clone = copy.deepcopy(el)        
         cs = clone.getchildren()[0] # recall, el only has one child element
@@ -113,6 +151,8 @@ class Chunk():
         pass
     
     def decompose(self, el):
+        # todo, consider getting rid of the split elements
+        # also, may need to track the root element.
         '''
         This is straight forward but a little clever, so watch
         out.  return a list of chunks that can be reassembled into the
@@ -123,43 +163,10 @@ class Chunk():
             # if doc is too big, split it up!
             
             if len(el.getchildren()) > 1:
-                # suppose el has more than one child element
-                # <a>
-                #   <b> </b>
-                #   <b> </b>
-                #   <c> </c>
-                #   <c> </c>
-                # </a>                  
-                #
-                # a sequence of decomposed elements are not too big. 
-                # <split> <a> xxxx <chunk-ref id="123"/> <chunk-ref id="456"/> <a/> </split>
-                # <chunk id="123"> <b> xxxx </b> <b> xxxx </b> </chunk>
-                # <chunk id="456"> <b> xxxx </b> <b> xxxx </b> </chunk>
-                # The first element of a folded chunk is the parent.
-                # not all the elements will fit into the folded chunk.
-                # so:                
                 s, l, r = self.split_many(el)
                 return self.decompose(s) + self.decompose(l) + self.decompose(r)
             
             else:
-                # situation, suppose el is heavily nested with only
-                # one child element and looks something like:
-                #
-                #         <a>
-                #             <b> 
-                #                 <c>
-                #                     <d> ... </d>
-                #                 </c>
-                #             </b>
-                #         </a>
-                #
-                # the previous tactic is ineffective since el has only
-                # one child element. No problem, just dig down another
-                # element and continue on.
-                #
-                # <split> <a> <b> <chunk-ref id="123"/> </b> </a> </split>
-                # <chunk id="123"> <c> <d> ... </d> </c> </chunk>
-                
                 split, rest = self.split_one(el)
                 return self.decompose(split) + self.decompose(rest)
         else:
