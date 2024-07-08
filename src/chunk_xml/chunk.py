@@ -6,23 +6,18 @@ from token_count import TokenCount
 def show(el):            
     return etree.tostring(el, encoding="utf-8").decode("utf-8")
 
+def hash_el(el):
+    s = etree.tostring(el, encoding="utf-8").decode("utf-8")
+    return hashlib.md5(s.encode()).hexdigest()[:16]
+
+# todo: setup logging
+def warn(x): print(x)
+
+
 class XmlDoc():
     def __init__(self, xml_src):
         pass
 
-class ChunkMgr():
-    ''' Decompose XML into smaller chunks that can be reassembled '''
-    
-    def __init__(self, tree, token_limit, model_name):
-        self.tree = tree
-        self.token_limit = token_limit
-        self.model_name = model_name
-        self.chunk = Chunk(self.tree, token_limit, model_name)
-        # self.chunks = self.chunk.decompose()
-
-def hash_el(el):
-    s = etree.tostring(el, encoding="utf-8").decode("utf-8")
-    return hashlib.md5(s.encode()).hexdigest()[:16]
 
 class Chunk():
     '''
@@ -32,6 +27,29 @@ class Chunk():
         self.token_limit = token_limit
         self.model_name = model_name
         self.init_hash = self.hash()
+
+    @staticmethod
+    def from_str(xml_string, token_limit, model_name):
+        el = etree.fromstring(xml_string)
+        return Chunk(el, token_limit, model_name)
+
+    def hash(self):
+        return hashlib.md5(str(self).encode()).hexdigest()[:16]
+
+    def __str__(self):
+        return etree.tostring(self.element, encoding="utf-8").decode("utf-8")
+    
+    
+class ChunkMgr():
+    ''' Decompose XML into smaller chunks that can be recompose '''
+   
+    def __init__(self, token_limit, model_name):
+        if token_limit < 100:
+            warn("token limit too small, increasing")
+            self.token_limit = 100
+        else:
+            self.token_limit = token_limit
+        self.model_name = model_name
         
     def element_num_tokens(self, el):        
         tc = TokenCount(model_name=self.model_name) # 
@@ -60,7 +78,7 @@ class Chunk():
           <e> ... </e>
         </a>                  
         
-        bust it into a sequence of 3 decomposed elements. 
+        bust it into a sequence of 3 smaller elements. 
         · <split>
             <a>
               <chunk-ref id="123"/>
@@ -172,13 +190,5 @@ class Chunk():
             return [Chunk(el, self.token_limit, self.model_name)]
 
     
-    def __str__(self):
-        return etree.tostring(self.element, encoding="utf-8").decode("utf-8")
 
-    @staticmethod
-    def from_str(xml_string, token_limit, model_name):
-        el = etree.fromstring(xml_string)
-        return Chunk(el, token_limit, model_name)
     
-    def hash(self):
-        return hashlib.md5(str(self).encode()).hexdigest()[:16]

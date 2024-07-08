@@ -25,9 +25,9 @@ class TestChunkMgr():
         </document>
         '''
     
-    def test_asdf(self):
-        root = etree.fromstring(TestChunkMgr.raw_data1())
-        cm = ChunkMgr(root, 100, "gpt-4o")
+    # def test_asdf(self):
+    #     root = etree.fromstring(TestChunkMgr.raw_data1())
+    #     cm = ChunkMgr(100, "gpt-4o")
         
 class TestChunk():
     def hash_cmp(self, xml_string):
@@ -60,6 +60,7 @@ class TestChunk():
 def show(el):            
     return etree.tostring(el, encoding="utf-8").decode("utf-8")
 
+
 def test_decompose_1():
     xml = '''
     <e>
@@ -69,8 +70,9 @@ def test_decompose_1():
       <d4> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d4>
     </e>
     '''
-    c = Chunk.from_str(xml, 10, "gpt-4o")
-    s, l, r = c.split_many(c.element)
+    el = etree.fromstring(xml)
+    cm = ChunkMgr(100, "gpt-4o")
+    chunks = cm.decompose(el)
 
 
 
@@ -83,18 +85,18 @@ def test_decompose_2():
       <d4> <c><b><a></a></b><b><a></a></b></c> <c><b><a></a></b><b><a></a></b></c> </d4>
     </e>
     '''
-    
-    c = Chunk.from_str(xml, 100, "gpt-4o")
-    xs = c.decompose(c.element)
+    el = etree.fromstring(xml)
+    cm = ChunkMgr(100, "gpt-4o")
+    xs = cm.decompose(el)
     
 def test_decompose_rand():
+    cm = ChunkMgr(500, "gpt-4o")
     for depth in range(4, 10):
-        xml = etree.tostring(random_el(depth))
-        c = Chunk.from_str(xml, 500, "gpt-4o")
-        xs = c.decompose(c.element)
+        el = random_el(depth)
+        chunks = cm.decompose(el)
 
 def test_decompose_file():
     xml_src = open("tests/cases/m49435-index.cnxml").read()
-    c = Chunk.from_str(xml_src, 500, "gpt-4o")
-    xs = c.decompose(c.element)
-    for x in xs: print(x)
+    el = etree.fromstring(xml_src)
+    cm = ChunkMgr(500, "gpt-4o")
+    xs = cm.decompose(el)
