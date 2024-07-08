@@ -33,7 +33,8 @@ class Chunk():
 
     @staticmethod
     def from_str(xml_string, token_limit, model_name):
-        el = etree.fromstring(xml_string)
+        parser = etree.XMLParser(remove_comments=True)
+        el = etree.fromstring(xml_string, parser=parser)
         return Chunk(el, token_limit, model_name)
 
     def hash(self):
@@ -177,11 +178,11 @@ class ChunkMgr():
         rest.extend(rest_els)
         rest_id = self.gen_next_id()
         rest.attrib["id"] = rest_id
-
-        # this mutates clone.
+        
+        # this mutates the clone.
         cs.append(self.build_ref(rest_id))
         return [clone, rest]
-        
+       
     def decomp(self, el):
         '''
         Return a list of chunks that can be reassembled into the

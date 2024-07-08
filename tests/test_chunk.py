@@ -147,13 +147,21 @@ def test_recompose_rand():
         assert s1 == s2
 
     
-def test_recompose_file():
-    xml = open("tests/cases/m49435-index.cnxml").read()
-    el = etree.fromstring(xml)
+def recompose_file(fname):
+    xml = open(fname).read()
+    parser = etree.XMLParser(remove_comments=True)
+    el = etree.fromstring(xml, parser=parser)
     cm = ChunkMgr(500, "gpt-4o")
     chunks = cm.decompose(el)
     el2 = cm.recompose(chunks)
         
-    s1 = pp(etree.fromstring(xml))
+    s1 = pp(etree.fromstring(xml, parser=parser))
     s2 = pp(el2)
     assert s1 == s2
+
+
+def test_recompose_file_m49435():
+    recompose_file("tests/cases/m49435-index.cnxml")
+    
+def test_recompose_file_m49368():
+    recompose_file("tests/cases/m49368-index.cnxml")
