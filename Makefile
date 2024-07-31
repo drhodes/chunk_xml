@@ -11,11 +11,11 @@ PY = ${VENV} python
 
 
 
-PYREQS = requirements.txt dev-requirements.txt
+PYREQS = pyproject.toml
 venv: ${BUILD_REQS} ${PYREQS} ## virtual environment for python
 	python3 -m venv venv && \
-	${VENV} pip install -r requirements.txt
-	${VENV} pip install -r dev-requirements.txt
+	${VENV} pip install .
+	${VENV} pip install '.[test]'
 	touch venv
 
 test: venv
